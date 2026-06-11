@@ -1,95 +1,60 @@
 import streamlit as st
+from PIL import Image
+import pytesseract
 
-st.set_page_config(page_title="Food Label Scanner", page_icon="🥓")
+st.title("Скенер на хранителни етикети")
 
-st.title("🥓 Сканиране на хранителен етикет")
-st.subheader("Продукт: PIKOK Пушена шунка")
+uploaded_file = st.file_uploader(
+    "Качи снимка на етикет",
+    type=["jpg", "jpeg", "png"]
+)
 
-ingredients = {
-    "Свинско месо (96%)": {
-        "type": "Безопасна",
-        "description": "Богато на белтъчини и витамини."
+ingredients_db = {
+    "нитрит": {
+        "status": "⚠️ Потенциално вредна",
+        "info": "Може да повиши здравните рискове при честа консумация."
     },
-    "Натриев нитрит (E250)": {
-        "type": "Потенциално вредна",
-        "description": "Консервант, използван за предпазване от бактерии."
+    "дифосфат": {
+        "status": "⚠️ Потенциално вредна",
+        "info": "Добавка за стабилизиране на продукта."
     },
-    "Дифосфати (E450)": {
-        "type": "Потенциално вредна",
-        "description": "Стабилизатор за подобряване структурата на месото."
+    "декстроза": {
+        "status": "⚠️ Захар",
+        "info": "Повишава кръвната захар."
     },
-    "Натриев аскорбат (E301)": {
-        "type": "Безопасна",
-        "description": "Антиоксидант, производно на витамин C."
+    "аскорбат": {
+        "status": "✅ Безопасна",
+        "info": "Антиоксидант, свързан с витамин C."
     },
-    "Декстроза": {
-        "type": "Умерена",
-        "description": "Проста захар."
-    },
-    "Подправки": {
-        "type": "Безопасна",
-        "description": "За вкус и аромат."
+    "свинско месо": {
+        "status": "✅ Полезна",
+        "info": "Източник на белтъчини."
     }
 }
 
-health_risks = {
-    "Натриев нитрит (E250)": [
-        "Повишено кръвно налягане",
-        "Сърдечно-съдови заболявания",
-        "Повишен риск при честа консумация"
-    ],
-    "Дифосфати (E450)": [
-        "Нарушен минерален баланс",
-        "Риск за хора с бъбречни заболявания"
-    ],
-    "Декстроза": [
-        "Повишава кръвната захар",
-        "Риск за диабетици"
-    ]
-}
+if uploaded_file:
+    image = Image.open(uploaded_file)
 
-st.header("Съставки")
+    st.image(image, caption="Качен етикет")
 
-for ingredient, info in ingredients.items():
-    st.write(f"**{ingredient}**")
-    st.write(f"Вид: {info['type']}")
-    st.write(f"Описание: {info['description']}")
-    st.divider()
+    text = pytesseract.image_to_string(image, lang="bul")
 
-st.header("Провери съставка")
+    st.subheader("Разпознат текст")
+    st.text(text)
 
-selected = st.selectbox(
-    "Избери съставка",
-    list(ingredients.keys())
-)
+    st.subheader("Открити съставки")
 
-if st.button("Покажи информация"):
-    st.success(ingredients[selected]["description"])
+    found = False
 
-    if selected in health_risks:
-        st.error("Възможни здравословни проблеми:")
-        for risk in health_risks[selected]:
-            st.write("•", risk)
-    else:
-        st.info("Няма известни сериозни рискове.")
+    text = text.lower()
 
-st.header("По-здравословни алтернативи")
+    for ingredient in ingredients_db:
+        if ingredient in text:
+            found = True
 
-alternatives = [
-    "Домашно печено месо",
-    "Варено пилешко филе",
-    "Пуешко филе",
-    "Домашна шунка",
-    "Яйца",
-    "Прясно месо"
-]
+            st.write(f"### {ingredient.title()}")
+            st.write(ingredients_db[ingredient]["status"])
+            st.write(ingredients_db[ingredient]["info"])
 
-for alt in alternatives:
-    st.write("✅", alt)
-
-st.header("Хранителни стойности (100 g)")
-st.write("Енергийна стойност: 115 kcal")
-st.write("Белтъчини: 20 g")
-st.write("Мазнини: 3 g")
-st.write("Въглехидрати: 2 g")
-st.write("Сол: 1.9 g")
+    if not found:
+        st.warning("Не са открити известни съставки.")
